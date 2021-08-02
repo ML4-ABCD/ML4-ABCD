@@ -106,7 +106,7 @@ def main():
     background = []
     signal = []
     for i in range(0,nEvents):
-        if i % 10000 == 0: print "Simulated {} events".format(i) 
+        if i % 10000 == 0: print("Simulated {} events".format(i))
         bMass = random.expovariate(0.01) # in GeV
         if bMass < m1 + m2: continue
         background.append(createEvent(m1, m2, bMass, "0"))
