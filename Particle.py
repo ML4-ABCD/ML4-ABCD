@@ -35,10 +35,10 @@ class Particle:
         bp = bx*self.Px() + by*self.Py() + bz*self.Pz()
         gamma2 = (gamma - 1.0)/b2 if b2 > 0 else 0.0
 
-        self.E_ = gamma*(self.E() + bp) 
         self.px_ = self.Px() + gamma2*bp*bx + gamma*bx*self.E()
         self.py_ = self.Py() + gamma2*bp*by + gamma*by*self.E()
         self.pz_ = self.Pz() + gamma2*bp*bz + gamma*bz*self.E()
+        self.E_ = gamma*(self.E() + bp) 
         
     def getFourVector(self):
         #return np.array([self.E(),self.Px(),self.Py(),self.Pz()])
@@ -49,3 +49,26 @@ class Particle:
 
     def __add__(self, other):
         return Particle(self.add(self.E(),other.E()), self.add(self.Px(),other.Px()), self.add(self.Py(),other.Py()), self.add(self.Pz(),other.Pz()))
+
+    def print(self):
+        print(self.getFourVector())
+
+def main():
+    #import ROOT
+    #p = Particle(100,0,0,0)
+    #print(p.M())
+    #p.print()
+    #p.boost(0.1,0.2,0.3)
+    #print(p.M())
+    #p.print()
+
+    v = ROOT.TLorentzVector()
+    v.SetPxPyPzE(0,0,0,100)
+    print(v.M()) 
+    v.Print()
+    v.Boost(0.1,0.2,0.3)
+    print(v.M()) 
+    v.Print()
+
+if __name__ == '__main__':
+    main()
