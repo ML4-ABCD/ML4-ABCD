@@ -39,14 +39,6 @@ class Particle:
         self.px_ = self.Px() + gamma2*bp*bx + gamma*bx*self.E()
         self.py_ = self.Py() + gamma2*bp*by + gamma*by*self.E()
         self.pz_ = self.Pz() + gamma2*bp*bz + gamma*bz*self.E()
-
-        #pframe=[0,0,B] #Beam incidence is z dir
-        #gamma=1/math.sqrt(1-B**2)
-        #E1 = self.E()
-        #px1 = self.Px()
-        #pz1 = self.Pz()
-        #self.E_ = gamma*E1-B*gamma*pz1
-        #self.pz_ = -B*gamma*E1+gamma*pz1
         
     def getFourVector(self):
         #return np.array([self.E(),self.Px(),self.Py(),self.Pz()])
