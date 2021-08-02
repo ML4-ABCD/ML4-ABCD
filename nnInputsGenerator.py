@@ -2,163 +2,156 @@ import math
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-import array
-import string
 
-class Particle(object):   
-    def __init__(self, E, px, py, pz, pt, eta, phi):
-        self.E = E
-        self.px = px
-        self.py = py
-        self.pz = pz
-        self.pt = pt
-        self.eta = eta
-        self.phi = phi
+class Particle:
+    def __init__(self, E=None, px=None, py=None, pz=None):
+        self.E_ = E
+        self.px_ = px
+        self.py_ = py
+        self.pz_ = pz
 
-    
+    def E (self): return self.E_
+    def Px(self): return self.px_
+    def Py(self): return self.py_
+    def Pz(self): return self.pz_
+    def P (self): return math.sqrt(self.Px()**2 + self.Py()**2 + self.Pz()**2)
+    def Pt(self): return math.sqrt(self.Px()**2 + self.Py()**2)
+    def M2(self): return self.E()**2 - self.P()**2
+    def M (self): return math.sqrt(self.M2()) if self.M2() > 0.0 else -math.sqrt(-self.M2())
+    def atan2(self,y,x): return 0.0 if y==0.0 and x==0.0 else math.atan2(y, x)
+    def Phi     (self): return self.atan2(self.Py(), self.Px())
+    def Theta   (self): return self.atan2(self.Pt(), self.Pz())
+    def CosTheta(self): return 1.0 if self.P() == 0.0 else self.Pz()/self.P()
+    def Eta     (self): return -0.5* math.log( (1.0-self.CosTheta())/(1.0+self.CosTheta()) ) if self.CosTheta()**2 < 1.0 else 0.0
+
+    def setMPmagPhiTheta(self, m, pmag, phi, theta):
+        dp = 10
+        self.E_ = round(math.sqrt(pmag**2 + m**2), dp)
+        self.px_ = round(pmag*math.sin(theta)*math.cos(phi), dp)
+        self.py_ = round(pmag*math.sin(theta)*math.sin(phi), dp)
+        self.pz_ = round(pmag*math.cos(theta), dp)
+
     def boost(self, B):
-
-      pframe=[0,0,B] #Beam incidence is z dir
-
-      gamma=1/math.sqrt(1-B**2)
+        pframe=[0,0,B] #Beam incidence is z dir
+        gamma=1/math.sqrt(1-B**2)
+        E1 = self.E()
+        px1 = self.Px()
+        pz1 = self.Pz()
+        self.E_ = gamma*E1-B*gamma*pz1
+        self.pz_ = -B*gamma*E1+gamma*pz1
+        
+    def getFourVector(self):
+        #return np.array([self.E(),self.Px(),self.Py(),self.Pz()])
+        return np.array([self.E(),self.Pt(),self.Eta(),self.Phi()])
     
+    def add(self, a, b):
+        return 0.0 if abs(a+b) < 1e-10 else a+b
 
-      E1=self.E
-      px1=self.px
-      pz1=self.pz
+    def __add__(self, other):
+        return Particle(self.add(self.E(),other.E()), self.add(self.Px(),other.Px()), self.add(self.Py(),other.Py()), self.add(self.Pz(),other.Pz()))
 
-      self.E = gamma*E1-B*gamma*pz1
-      self.pz = -B*gamma*E1+gamma*pz1
-      self.eta = -math.log(abs(math.tan(1/2*np.arctan(px1/self.pz))))
-  
-      return self
+def simulateDecay(m1, m2, M):
+    phi = random.uniform(-math.pi, math.pi)
+    theta = random.uniform(0.02, math.pi-0.02)
     
-    def gitfourvector(self):
-      return np.array([self.E,self.pt,self.eta,self.phi])
+    pmag1 = math.sqrt(((M**2+m1**2-m2**2)**2-4*M**2*m1**2))/(2*M)
+    phi1 = phi
+    theta1 = theta
+    
+    pmag2 = math.sqrt(((M**2+m2**2-m1**2)**2-4*M**2*m2**2))/(2*M)  
+    phi2 = phi + math.pi
+    if phi2 > 2*math.pi:
+        phi2 -= 2*math.pi
+    elif phi2 < -2*math.pi:
+        phi2 += 2*math.pi
+    theta2 = math.pi - theta
 
-def createEventforRealthisTime(Mass):
-  pairs=[]
-  event=[]
-  
-  M=random.gauss(Mass,1) # in GeV
-  Msq=M**2
-  m1=20 #same for every pair- but does ::" depending on M?
-  m2=5
+    particle1 = Particle()
+    particle2 = Particle()
+    particle1.setMPmagPhiTheta(m1,pmag1,phi1,theta1)
+    particle2.setMPmagPhiTheta(m2,pmag2,phi2,theta2)
+    return particle1, particle2
 
-  pmag1=math.sqrt(((Msq+m1**2-m2**2)**2-4*M**2*m1**2))/(2*M)
-  pmag2=math.sqrt(((Msq+m2**2-m1**2)**2-4*M**2*m2**2))/(2*M)
-  
-  phi=random.uniform(0,2*math.pi)
-  theta=random.uniform(0,math.pi)
+def createEvent(m1, m2, M, eType):
+    event=[]
+    particle1, particle2 = simulateDecay(m1, m2, M)
+    parent=Particle()
+    parent.setMPmagPhiTheta(M, 0.0, 0.0, math.pi/2)
+    p = particle1 + particle2
+    particle14v=particle1.getFourVector()
+    particle24v=particle2.getFourVector()
+    parent4v=parent.getFourVector()
+    p4v = p.getFourVector()
 
-  p1x=pmag1*math.sin(phi)*math.cos(theta)
-  p1y=pmag1*math.sin(phi)*math.sin(theta)
-  p1z=pmag1*math.cos(phi)
-  
-  E1=math.sqrt(pmag1**2+m1**2)
-  
-  phi1=phi 
-  pt1= math.sqrt(p1x**2+p1y**2)   #assuming the beam line is in the z direction, px and py come solely from the collision
-                                  #pt is invariant under boost
-  theta1=theta
-  tn=math.tan(phi1/2)
-  eta1=-math.log(math.tan(theta1/2)) # way of reconceptualizing angle of incidence to beam- theta- that creates a value deltaeta that is invariant- useful bc no way to know momentum of quarks in lab frame being hit-
-  
+    event.extend(parent4v)
+    event.extend(particle14v)
+    event.extend(particle24v)
+    event.extend(eType)
+    return event
 
-  p2x=pmag2*math.sin(phi+math.pi)*math.cos(theta+math.pi)
-  p2y=pmag2*math.sin(phi+math.pi)*math.sin(theta+math.pi)
-  p2z=pmag2*math.cos(phi+math.pi)
-  E2=math.sqrt(pmag2**2+m2**2) 
+def main():
+    ###########################
+    #Define simulation constants
+    ###########################
+    signalPoleMass = 91.1876
+    m1 = 0.1056583745
+    m2 = m1
+    nEvents = 100000
+    xsecLumiBg = 1e5
+    xsecLumiSg = 5e2
+    
+    ###########################
+    # Simulate events, fill background and signal events. Need to optimize
+    ###########################
+    background = []
+    signal = []
+    for i in range(0,nEvents):
+        if i % 10000 == 0: print "Simulated {} events".format(i) 
+        bMass = random.expovariate(0.01) # in GeV
+        if bMass < m1 + m2: continue
+        background.append(createEvent(m1, m2, bMass, "0"))
+    
+        sMass = random.gauss(signalPoleMass,2) # in GeV  
+        signal.append(createEvent(m1, m2, sMass, "1"))
+    background = np.array(background, dtype=float)
+    signal = np.array(signal, dtype=float)
+    
+    ###########################
+    # Make event weight arrays
+    ###########################
+    nEventsGen = len(background)
+    bWeight = np.empty(nEventsGen)
+    sWeight = np.empty(nEventsGen)
+    bWeight.fill(xsecLumiBg/nEventsGen)
+    sWeight.fill(xsecLumiSg/nEventsGen)
+    
+    ###########################
+    # Save output to npz file
+    ###########################
+    newoutput='absolutepath'
+    np.save(newoutput, [signal, background])
+    
+    ###########################
+    # Plot training variables
+    ###########################
+    import matplotlib.pyplot as plt 
 
+    for i in range(signal.shape[1]):
+        fig = plt.figure()
+        sg = signal[:,i]
+        bg = background[:,i]
+        tot = np.concatenate((sg, bg))
+        tWeight = np.concatenate((sWeight, bWeight))
+    
+        #plt.hist(sg,  bins=75, range=(0,150), alpha=0.9, histtype='step', lw=2, label=None, log=False, weights=sWeight)
+        #plt.hist(bg,  bins=75, range=(0,150), alpha=0.9, histtype='step', lw=2, label=None, log=False, weights=bWeight)
+        #plt.hist(tot, bins=75, range=(0,150), alpha=0.9, histtype='step', lw=2, label=None, log=False, weights=tWeight)
+    
+        plt.hist(sg,  alpha=0.9, histtype='step', lw=2, label=None, log=True, weights=sWeight)
+        plt.hist(bg,  alpha=0.9, histtype='step', lw=2, label=None, log=True, weights=bWeight)
+        plt.hist(tot, alpha=0.9, histtype='step', lw=2, label=None, log=True, weights=tWeight)
+        fig.savefig("trainVar{}.png".format(i), dpi=fig.dpi) 
 
-  phi2=phi+math.pi
-  pt2= math.sqrt(p2x**2+p2y**2)
-  theta2=theta
-  eta2=-math.log(math.tan(theta2/2))
-  
+if __name__ == '__main__':
+    main()
 
-
-  particle1=Particle(E1, p1x,p1y,p1z,pt1, eta1, phi1)
-  particle14v=particle1.gitfourvector()
-
-  particle2=Particle(E2,p2x,p2y,p2z,pt2,eta2,phi2)
-  particle24v=particle2.gitfourvector()
-
-  #pairs=[particle1.gitfourvector(), particle2.gitfourvector()]
-
-  parent=Particle(particle1.E+particle2.E,0,0,0,0,"inf",0)
-  parent4v=parent.gitfourvector()
-
-  #event=np.concatenate(particle14v, particle24v,parent4v)
-  event.extend(particle14v)
-  event.extend(particle24v)
-  event.extend(parent4v)
-  event.extend('1')
-  return event
-
-
-
-def createEventforRealthisTimebackground(Mass):
-  pairs=[]
-  event=[]
-  
-  M=random.expovariate(Mass) # in GeV
-  Msq=M**2
-  m1=20 #same for every pair- but does ::" depending on M?
-  m2=5
-
-  pmag1=math.sqrt(((Msq+m1**2-m2**2)**2-4*M**2*m1**2))/(2*M)
-  pmag2=math.sqrt(((Msq+m2**2-m1**2)**2-4*M**2*m2**2))/(2*M)
-  
-  phi=random.uniform(0,2*math.pi)
-  theta=random.uniform(0,math.pi)
-
-  p1x=pmag1*math.sin(phi)*math.cos(theta)
-  p1y=pmag1*math.sin(phi)*math.sin(theta)
-  p1z=pmag1*math.cos(phi)
-  
-  E1=math.sqrt(pmag1**2+m1**2)
-  
-  phi1=phi 
-  pt1= math.sqrt(p1x**2+p1y**2)   #assuming the beam line is in the z direction, px and py come solely from the collision
-                                  #pt is invariant under boost
-  theta1=theta
-  tn=math.tan(phi1/2)
-  eta1=-math.log(math.tan(theta1/2)) # way of reconceptualizing angle of incidence to beam- theta- that creates a value deltaeta that is invariant- useful bc no way to know momentum of quarks in lab frame being hit-
-  
-
-  p2x=pmag2*math.sin(phi+math.pi)*math.cos(theta+math.pi)
-  p2y=pmag2*math.sin(phi+math.pi)*math.sin(theta+math.pi)
-  p2z=pmag2*math.cos(phi+math.pi)
-  E2=math.sqrt(pmag2**2+m2**2) 
-
-
-  phi2=phi+math.pi
-  pt2= math.sqrt(p2x**2+p2y**2)
-  theta2=theta
-  eta2=-math.log(math.tan(theta2/2))
-  
-
-
-  particle1=Particle(E1, p1x,p1y,p1z,pt1, eta1, phi1)
-  particle14v=particle1.gitfourvector()
-
-  particle2=Particle(E2,p2x,p2y,p2z,pt2,eta2,phi2)
-  particle24v=particle2.gitfourvector()
-
-
-  #parent=Particle(particle1.E+particle2.E,0,0,0,0,"inf",0) No parent bc this is background
-  #parent4v=parent.gitfourvector()
-
-  event.extend(particle14v)
-  event.extend(particle24v)
-  #event.extend(parent4v)
-  event.extend("0")
-
-  return event
-
-
-
-listofevents=[[createEventforRealthisTime(80) for _ in range(0,1000)], [createEventforRealthisTimebackground(80) for _ in range(0,1000)]]
-newoutput='absolutepath'
-np.save(newoutput,listofevents)
