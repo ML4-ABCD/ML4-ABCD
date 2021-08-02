@@ -27,16 +27,20 @@ def simulateDecay(m1, m2, M):
     return particle1, particle2
 
 def createEvent(m1, m2, M, eType):
-    event=[]
     particle1, particle2 = simulateDecay(m1, m2, M)
     parent=Particle()
     parent.setMPmagPhiTheta(M, 0.0, 0.0, math.pi/2)
-    p = particle1 + particle2
+
+    bx, by, bz = 0.0, 0.0, 0.0
+    particle1.boost(bx, by, bz)
+    particle2.boost(bx, by, bz)
+    parent.boost(bx, by, bz)
+
     particle14v=particle1.getFourVector()
     particle24v=particle2.getFourVector()
     parent4v=parent.getFourVector()
-    p4v = p.getFourVector()
 
+    event=[]
     event.extend(parent4v)
     event.extend(particle14v)
     event.extend(particle24v)

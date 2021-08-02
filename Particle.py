@@ -29,14 +29,24 @@ class Particle:
         self.py_ = round(pmag*math.sin(theta)*math.sin(phi), dp)
         self.pz_ = round(pmag*math.cos(theta), dp)
 
-    def boost(self, B):
-        pframe=[0,0,B] #Beam incidence is z dir
-        gamma=1/math.sqrt(1-B**2)
-        E1 = self.E()
-        px1 = self.Px()
-        pz1 = self.Pz()
-        self.E_ = gamma*E1-B*gamma*pz1
-        self.pz_ = -B*gamma*E1+gamma*pz1
+    def boost(self, bx=0.0, by=0.0, bz=0.0):
+        b2 = bx*bx + by*by + bz*bz
+        gamma = 1.0 / math.sqrt(1.0 - b2)
+        bp = bx*self.Px() + by*self.Py() + bz*self.Pz()
+        gamma2 = (gamma - 1.0)/b2 if b2 > 0 else 0.0
+
+        self.E_ = gamma*(self.E() + bp) 
+        self.px_ = self.Px() + gamma2*bp*bx + gamma*bx*self.E()
+        self.py_ = self.Py() + gamma2*bp*by + gamma*by*self.E()
+        self.pz_ = self.Pz() + gamma2*bp*bz + gamma*bz*self.E()
+
+        #pframe=[0,0,B] #Beam incidence is z dir
+        #gamma=1/math.sqrt(1-B**2)
+        #E1 = self.E()
+        #px1 = self.Px()
+        #pz1 = self.Pz()
+        #self.E_ = gamma*E1-B*gamma*pz1
+        #self.pz_ = -B*gamma*E1+gamma*pz1
         
     def getFourVector(self):
         #return np.array([self.E(),self.Px(),self.Py(),self.Pz()])
